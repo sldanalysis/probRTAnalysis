@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
+<nta>
+	<declaration>// Place global declarations here.
+clock t;
+broadcast chan start;
+broadcast chan stop;</declaration>
+	<template>
+		<name x="5" y="5">Example</name>
+		<declaration>const int A = 0;
+const int B = 1;
+
+double x;
+
+double stdNormal()
+{
+    return sqrt(-2.0 * ln(random(1))) * cos(2.0 * 3.14159 * (1.0-random(1))) - 1.5;
+}
+
+double Normal(double mean, double stddev)
+{
+    return mean + stddev * stdNormal();
+}
+
+
+double GetDelayA()
+{
+    double x;
+    x = random(1.0);
+    if(x &gt;= 0.9990) return 22.43;
+    if(x &gt;= 0.9960) return 22.18;
+    if(x &gt;= 0.9880) return 21.93;
+    if(x &gt;= 0.9740) return 21.67;
+    if(x &gt;= 0.9460) return 21.42;
+    if(x &gt;= 0.9050) return 21.17;
+    if(x &gt;= 0.8470) return 20.91;
+    if(x &gt;= 0.7560) return 20.66;
+    if(x &gt;= 0.6520) return 20.41;
+    if(x &gt;= 0.5120) return 20.16;
+    if(x &gt;= 0.3960) return 19.90;
+    if(x &gt;= 0.2930) return 19.65;
+    if(x &gt;= 0.1940) return 19.40;
+    if(x &gt;= 0.1160) return 19.15;
+    if(x &gt;= 0.0700) return 18.89;
+    if(x &gt;= 0.0400) return 18.64;
+    if(x &gt;= 0.0190) return 18.39;
+    if(x &gt;= 0.0060) return 18.13;
+    if(x &gt;= 0.0030) return 17.88;
+    return 17.63;
+}
+
+double GetDelayB()
+{
+    double x;
+    x = random(1.0);
+    if(x &gt;= 0.8800) return 11.74;
+    if(x &gt;= 0.7030) return 11.36;
+    if(x &gt;= 0.5300) return 10.97;
+    if(x &gt;= 0.3910) return 10.59;
+    if(x &gt;= 0.2480) return 10.20;
+    if(x &gt;= 0.2030) return 9.82;
+    if(x &gt;= 0.1610) return 9.43;
+    if(x &gt;= 0.1260) return 9.05;
+    if(x &gt;= 0.0990) return 8.66;
+    if(x &gt;= 0.0760) return 8.28;
+    if(x &gt;= 0.0650) return 7.89;
+    if(x &gt;= 0.0460) return 7.51;
+    if(x &gt;= 0.0290) return 7.12;
+    if(x &gt;= 0.0220) return 6.74;
+    if(x &gt;= 0.0130) return 6.35;
+    if(x &gt;= 0.0100) return 5.97;
+    if(x &gt;= 0.0060) return 5.58;
+    if(x &gt;= 0.0050) return 5.20;
+    if(x &gt;= 0.0030) return 4.81;
+    return 4.43;
+}
+
+double GetDelay(int id)
+{
+/*
+    if(id == A)
+        return Normal(10, 0.1);
+    else
+        return Normal(20, 0.8);
+*/
+    if(id == A)
+        return GetDelayA();
+    else
+        return GetDelayB();
+}
+
+
+</declaration>
+		<location id="id0" x="-374" y="-374">
+			<name x="-384" y="-408">Init</name>
+			<committed/>
+		</location>
+		<location id="id1" x="-272" y="-374">
+			<name x="-289" y="-408">ActorA</name>
+			<label kind="invariant" x="-255" y="-391">t &lt;= x</label>
+		</location>
+		<location id="id2" x="-68" y="-374">
+			<name x="-85" y="-408">ActorB</name>
+			<label kind="invariant" x="-51" y="-391">t &lt;= x</label>
+		</location>
+		<location id="id3" x="-170" y="-374">
+			<committed/>
+		</location>
+		<init ref="id0"/>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="synchronisation" x="-357" y="-391">start!</label>
+			<label kind="assignment" x="-357" y="-374">t = 0,
+x = GetDelay(A)</label>
+		</transition>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id2"/>
+			<label kind="assignment" x="-153" y="-374">t = 0,
+x = GetDelay(B)</label>
+		</transition>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id0"/>
+			<label kind="guard" x="-51" y="-374">t &gt;= x</label>
+			<label kind="synchronisation" x="-42" y="-323">stop!</label>
+			<nail x="0" y="-374"/>
+			<nail x="0" y="-306"/>
+			<nail x="-374" y="-306"/>
+		</transition>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id3"/>
+			<label kind="guard" x="-255" y="-374">t &gt;= x</label>
+		</transition>
+	</template>
+	<template>
+		<name>Observer</name>
+		<declaration>clock end2end;</declaration>
+		<location id="id4" x="0" y="0">
+			<committed/>
+		</location>
+		<location id="id5" x="204" y="0">
+			<name x="221" y="-8">Running</name>
+		</location>
+		<location id="id6" x="68" y="0">
+			<name x="51" y="-34">Finish</name>
+		</location>
+		<init ref="id4"/>
+		<transition>
+			<source ref="id5"/>
+			<target ref="id6"/>
+			<label kind="synchronisation" x="119" y="34">stop?</label>
+			<nail x="136" y="34"/>
+		</transition>
+		<transition>
+			<source ref="id6"/>
+			<target ref="id5"/>
+			<label kind="synchronisation" x="119" y="-51">start?</label>
+			<label kind="assignment" x="170" y="-42">end2end = 0</label>
+			<nail x="136" y="-34"/>
+		</transition>
+		<transition>
+			<source ref="id4"/>
+			<target ref="id6"/>
+		</transition>
+	</template>
+	<system>
+example = Example();
+observer = Observer();
+
+system example, observer;
+    </system>
+	<queries>
+		<query>
+			<formula>E [&lt;= 40; 1000] (max: observer.end2end)</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>Pr[&lt;= 400](&lt;&gt; observer.Finish)</formula>
+			<comment>
+			</comment>
+		</query>
+		<query>
+			<formula>simulate 100 [&lt;= 200] {observer.end2end}</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>simulate 100 [&lt;= 200] {observer.Finish}
+			</formula>
+			<comment>
+			</comment>
+		</query>
+	</queries>
+</nta>

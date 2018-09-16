@@ -1,0 +1,1153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
+<nta>
+	<declaration>// epsilon=0.005, beta=0.005 and alpha=0.005
+
+
+const double PI = 3.14159265358979323846;
+
+double stdNormal()
+{
+    // Box-Muller transformation
+    return sqrt(-2.0 * ln(1.0 - random(1))) * cos(2.0 * PI * random(1));
+}
+
+double Normal(double mean, double stddev)
+{
+    return fabs(mean + stddev * stdNormal());
+}
+
+
+double GetDelay_GetPixel()
+{
+    //return Normal(7961.34, 41.12);
+    double x;
+    x = random(1.0);
+    if(x &gt;= 0.9996) return 8234.15;
+    if(x &gt;= 0.9987) return 8212.45;
+    if(x &gt;= 0.9974) return 8169.05;
+    if(x &gt;= 0.9970) return 8147.35;
+    if(x &gt;= 0.9957) return 8125.65;
+    if(x &gt;= 0.9601) return 8103.95;
+    if(x &gt;= 0.9579) return 8082.25;
+    if(x &gt;= 0.9212) return 8060.55;
+    if(x &gt;= 0.9185) return 8038.85;
+    if(x &gt;= 0.8812) return 8017.15;
+    if(x &gt;= 0.8438) return 7995.45;
+    if(x &gt;= 0.8420) return 7973.75;
+    if(x &gt;= 0.1461) return 7952.05;
+    if(x &gt;= 0.0400) return 7930.35;
+    if(x &gt;= 0.0027) return 7908.65;
+    if(x &gt;= 0.0001) return 7886.95;
+    return 7821.85;
+}
+double GetDelay_GX()
+{
+    //return Normal(6738.84, 30.04);
+    double x;
+    x = random(1.0);
+    if(x &gt;= 0.7922) return 6773.60;
+    if(x &gt;= 0.7729) return 6762.80;
+    if(x &gt;= 0.4545) return 6752.00;
+    if(x &gt;= 0.4296) return 6741.20;
+    if(x &gt;= 0.2858) return 6730.40;
+    if(x &gt;= 0.1595) return 6719.60;
+    if(x &gt;= 0.1268) return 6708.80;
+    if(x &gt;= 0.0586) return 6698.00;
+    if(x &gt;= 0.0477) return 6687.20;
+    if(x &gt;= 0.0322) return 6676.40;
+    if(x &gt;= 0.0173) return 6665.60;
+    if(x &gt;= 0.0129) return 6654.80;
+    if(x &gt;= 0.0071) return 6644.00;
+    if(x &gt;= 0.0054) return 6633.20;
+    if(x &gt;= 0.0031) return 6622.40;
+    if(x &gt;= 0.0017) return 6611.60;
+    if(x &gt;= 0.0013) return 6600.80;
+    if(x &gt;= 0.0004) return 6590.00;
+    return 6568.40;
+}
+double GetDelay_GY()
+{
+    //return Normal(6739.24, 30.00);
+    double x;
+    x = random(1.0);
+    if(x &gt;= 0.7843) return 6770.75;
+    if(x &gt;= 0.7075) return 6760.25;
+    if(x &gt;= 0.4392) return 6749.75;
+    if(x &gt;= 0.3961) return 6739.25;
+    if(x &gt;= 0.2712) return 6728.75;
+    if(x &gt;= 0.1634) return 6718.25;
+    if(x &gt;= 0.1375) return 6707.75;
+    if(x &gt;= 0.0579) return 6697.25;
+    if(x &gt;= 0.0440) return 6686.75;
+    if(x &gt;= 0.0290) return 6676.25;
+    if(x &gt;= 0.0167) return 6665.75;
+    if(x &gt;= 0.0115) return 6655.25;
+    if(x &gt;= 0.0080) return 6644.75;
+    if(x &gt;= 0.0042) return 6634.25;
+    if(x &gt;= 0.0021) return 6623.75;
+    if(x &gt;= 0.0004) return 6613.25;
+    if(x &gt;= 0.0000) return 6602.75;
+    return 6571.25;
+}
+double GetDelay_ABS()
+{
+    //return Normal(  63.00,  6.55);
+    double x;
+    x = random(1.0);
+    if(x &gt;= 0.7353) return 71.55;
+    if(x &gt;= 0.2651) return 63.45;
+    return 54.45;
+}
+
+// Delays applied for the model
+const int readdelay_bcet    =  18;
+const int readdelay_wcet    =  19;
+const int writedelay_bcet   =  14;
+const int writedelay_wcet   =  15;
+const int pollingdelay      = 251;
+const int enqueuedelay_bcet = 181;
+const int enqueuedelay_wcet = 185;
+const int dequeuedelay_bcet = 142;
+const int dequeuedelay_wcet = 144;
+
+urgent broadcast chan start;     // start observer (Start of SDFG Execution)
+urgent broadcast chan finish;    // signalize that one iteration of the SDFG execution is finished
+urgent broadcast chan startComDriver;
+urgent broadcast chan startTiles;
+urgent broadcast chan startBus;
+
+urgent broadcast chan update; // triggers a global state update
+
+typedef struct {
+    int maxtokens;    // Maximum of tokens that fit into the FIFO
+    int numtokens;    // Current amount of tokens stored in the FIFO
+} FIFO_t;
+
+FIFO_t sharedfifos[4] = {{81, 0}, {81, 0}, {1, 0}, {1, 0}}; // there are 4 SDF channels mapped to the shared memory
+
+// Indizes for the sharedfifo array. Each array element corresponds to one SDF channel
+const int Channel_GetPixel_GX = 0;
+const int Channel_GetPixel_GY = 1;
+const int Channel_GX_ABS      = 2;
+const int Channel_GY_ABS      = 3;
+int currentFIFOUsedByTile[2];    // This addresses the FIFO that currently is used by a tile for communication
+
+// Accessing FIFOS
+bool comWriteFIFOByTile[2];    // \_ Request to read/write all tokens. Will be set to false when request completed
+bool comReadFIFOByTile[2];     // /
+
+
+// BUS Access
+typedef struct {
+    int  tilenr;
+    bool write;
+} RQFIFO_t;
+
+bool pendingBusRequest[2] = {false, false};
+
+// Dummy FIFOs that will be transfered over the Bus
+const int RFIFOSIZE = 5;
+RQFIFO_t requestFIFO[RFIFOSIZE] = {{-1, false}, {-1, false}, {-1, false}, {-1, false}, {-1, false}};
+int rfReadIndex = 0;
+int rfWriteIndex = 0;
+
+const bool READ  = false;
+const bool WRITE = true;
+
+bool CheckForRequest()
+{
+    if(rfReadIndex == rfWriteIndex)
+    {
+        return false;
+    }
+    return true;
+}
+
+void PushRequest(int tilenr, bool write)
+{
+    requestFIFO[rfWriteIndex].tilenr = tilenr;
+    requestFIFO[rfWriteIndex].write  = write;
+    pendingBusRequest[tilenr]        = true;
+    rfWriteIndex                     = (rfWriteIndex + 1) % RFIFOSIZE;
+}
+
+RQFIFO_t PopRequest()
+{
+    RQFIFO_t request = {-1, false};
+    if(rfReadIndex == rfWriteIndex)
+    {
+        return request;
+    }
+
+    request      = requestFIFO[rfReadIndex];
+    rfReadIndex  = (rfReadIndex + 1) % RFIFOSIZE;
+    return request;
+}
+</declaration>
+	<template>
+		<name x="5" y="5">Tile0</name>
+		<declaration>clock t;
+clock delay;</declaration>
+		<location id="id0" x="-918" y="-34">
+			<name x="-926" y="-76">Init</name>
+		</location>
+		<location id="id1" x="-510" y="-34">
+			<name x="-484" y="-42">GetPixel_Computation</name>
+			<label kind="invariant" x="-493" y="-68">t &lt;= delay &amp;&amp; delay' == 0</label>
+		</location>
+		<location id="id2" x="306" y="-238">
+			<name x="331" y="-246">GY_Computation</name>
+			<label kind="invariant" x="314" y="-204">t &lt;= delay &amp;&amp; delay' == 0</label>
+		</location>
+		<location id="id3" x="-510" y="-102">
+			<committed/>
+		</location>
+		<location id="id4" x="-510" y="-238">
+			<name x="-484" y="-246">WR_GetPixel2GX</name>
+		</location>
+		<location id="id5" x="-510" y="-306">
+			<committed/>
+		</location>
+		<location id="id6" x="-510" y="-442">
+			<name x="-484" y="-450">WR_GetPixel2GY</name>
+		</location>
+		<location id="id7" x="-136" y="-510">
+			<committed/>
+		</location>
+		<location id="id8" x="306" y="-374">
+			<name x="331" y="-382">RD_GetPixel2GY</name>
+		</location>
+		<location id="id9" x="306" y="-306">
+			<committed/>
+		</location>
+		<location id="id10" x="-34" y="68">
+			<committed/>
+		</location>
+		<location id="id11" x="306" y="-170">
+			<committed/>
+		</location>
+		<location id="id12" x="306" y="-34">
+			<name x="331" y="-42">WR_GY2ABS</name>
+		</location>
+		<location id="id13" x="-748" y="-34">
+			<committed/>
+		</location>
+		<location id="id14" x="-510" y="-170">
+			<committed/>
+		</location>
+		<location id="id15" x="-510" y="-374">
+			<committed/>
+		</location>
+		<location id="id16" x="306" y="-442">
+			<committed/>
+		</location>
+		<location id="id17" x="306" y="-102">
+			<committed/>
+		</location>
+		<init ref="id0"/>
+		<transition>
+			<source ref="id17"/>
+			<target ref="id12"/>
+			<label kind="synchronisation" x="238" y="-76">update!</label>
+		</transition>
+		<transition>
+			<source ref="id16"/>
+			<target ref="id8"/>
+			<label kind="synchronisation" x="238" y="-416">update!</label>
+		</transition>
+		<transition>
+			<source ref="id15"/>
+			<target ref="id6"/>
+			<label kind="synchronisation" x="-578" y="-416">update!</label>
+		</transition>
+		<transition>
+			<source ref="id14"/>
+			<target ref="id4"/>
+			<label kind="synchronisation" x="-578" y="-212">update!</label>
+		</transition>
+		<transition>
+			<source ref="id13"/>
+			<target ref="id1"/>
+			<label kind="synchronisation" x="-731" y="-51">start!</label>
+			<label kind="assignment" x="-731" y="-34">t=0,
+delay = GetDelay_GetPixel()</label>
+		</transition>
+		<transition>
+			<source ref="id12"/>
+			<target ref="id10"/>
+			<label kind="guard" x="314" y="-17">comWriteFIFOByTile[0] == false</label>
+			<label kind="synchronisation" x="238" y="-17">update?</label>
+			<nail x="306" y="68"/>
+		</transition>
+		<transition>
+			<source ref="id11"/>
+			<target ref="id17"/>
+			<label kind="assignment" x="314" y="-153">currentFIFOUsedByTile[0] = Channel_GY_ABS,
+comWriteFIFOByTile[0] = true</label>
+		</transition>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id11"/>
+			<label kind="guard" x="314" y="-221">t &gt;= delay</label>
+		</transition>
+		<transition>
+			<source ref="id9"/>
+			<target ref="id2"/>
+			<label kind="assignment" x="314" y="-289">t = 0,
+delay = GetDelay_GY()</label>
+		</transition>
+		<transition>
+			<source ref="id8"/>
+			<target ref="id9"/>
+			<label kind="guard" x="314" y="-357">comReadFIFOByTile[0] == false</label>
+			<label kind="synchronisation" x="238" y="-357">update?</label>
+		</transition>
+		<transition>
+			<source ref="id7"/>
+			<target ref="id16"/>
+			<label kind="assignment" x="314" y="-510">currentFIFOUsedByTile[0] = Channel_GetPixel_GY,
+comReadFIFOByTile[0] = true</label>
+			<nail x="306" y="-510"/>
+		</transition>
+		<transition>
+			<source ref="id6"/>
+			<target ref="id7"/>
+			<label kind="guard" x="-501" y="-476">comWriteFIFOByTile[0] == false</label>
+			<label kind="synchronisation" x="-578" y="-476">update?</label>
+			<nail x="-510" y="-510"/>
+		</transition>
+		<transition>
+			<source ref="id5"/>
+			<target ref="id15"/>
+			<label kind="assignment" x="-501" y="-357">currentFIFOUsedByTile[0] = Channel_GetPixel_GY,
+comWriteFIFOByTile[0] = true</label>
+		</transition>
+		<transition>
+			<source ref="id4"/>
+			<target ref="id5"/>
+			<label kind="guard" x="-501" y="-272">comWriteFIFOByTile[0] == false</label>
+			<label kind="synchronisation" x="-578" y="-272">update?</label>
+		</transition>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id14"/>
+			<label kind="assignment" x="-501" y="-153">currentFIFOUsedByTile[0] = Channel_GetPixel_GX,
+comWriteFIFOByTile[0] = true</label>
+		</transition>
+		<transition>
+			<source ref="id10"/>
+			<target ref="id1"/>
+			<label kind="synchronisation" x="-552" y="17">start!</label>
+			<label kind="assignment" x="-501" y="0">t = 0,
+delay = GetDelay_GetPixel()</label>
+			<nail x="-510" y="68"/>
+		</transition>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id3"/>
+			<label kind="guard" x="-493" y="-85">t &gt;= delay</label>
+		</transition>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id13"/>
+			<label kind="synchronisation" x="-901" y="-51">startTiles?</label>
+		</transition>
+	</template>
+	<template>
+		<name>Tile1</name>
+		<declaration>clock t;
+clock delay;</declaration>
+		<location id="id18" x="-680" y="-442">
+			<name x="-654" y="-450">GX_Computation</name>
+			<label kind="invariant" x="-671" y="-476">t &lt;= delay &amp;&amp; delay' == 0</label>
+		</location>
+		<location id="id19" x="-816" y="-170">
+			<name x="-824" y="-212">Init</name>
+		</location>
+		<location id="id20" x="-306" y="-170">
+			<committed/>
+		</location>
+		<location id="id21" x="-680" y="-306">
+			<name x="-655" y="-314">RD_GetPixel2GX</name>
+		</location>
+		<location id="id22" x="-680" y="-374">
+			<committed/>
+		</location>
+		<location id="id23" x="-680" y="-510">
+			<committed/>
+		</location>
+		<location id="id24" x="-680" y="-654">
+			<name x="-655" y="-662">WR_GX2ABS</name>
+		</location>
+		<location id="id25" x="-680" y="-170">
+			<committed/>
+		</location>
+		<location id="id26" x="-306" y="-782">
+			<committed/>
+		</location>
+		<location id="id27" x="-34" y="-646">
+			<name x="-8" y="-654">RD_GX2ABS</name>
+		</location>
+		<location id="id28" x="-34" y="-578">
+			<committed/>
+		</location>
+		<location id="id29" x="-34" y="-442">
+			<name x="-8" y="-450">RD_GY2ABS</name>
+		</location>
+		<location id="id30" x="-34" y="-374">
+			<committed/>
+		</location>
+		<location id="id31" x="-34" y="-306">
+			<name x="-8" y="-314">ABS_Computation</name>
+			<label kind="invariant" x="-25" y="-289">t &lt;= delay &amp;&amp; delay' == 0</label>
+		</location>
+		<location id="id32" x="-34" y="-238">
+			<committed/>
+		</location>
+		<location id="id33" x="-680" y="-238">
+			<committed/>
+		</location>
+		<location id="id34" x="-680" y="-578">
+			<committed/>
+		</location>
+		<location id="id35" x="-34" y="-714">
+			<committed/>
+		</location>
+		<location id="id36" x="-34" y="-510">
+			<committed/>
+		</location>
+		<init ref="id19"/>
+		<transition>
+			<source ref="id36"/>
+			<target ref="id29"/>
+			<label kind="synchronisation" x="-102" y="-484">update!</label>
+		</transition>
+		<transition>
+			<source ref="id35"/>
+			<target ref="id27"/>
+			<label kind="synchronisation" x="-102" y="-688">update!</label>
+		</transition>
+		<transition>
+			<source ref="id34"/>
+			<target ref="id24"/>
+			<label kind="synchronisation" x="-748" y="-620">update!</label>
+		</transition>
+		<transition>
+			<source ref="id33"/>
+			<target ref="id21"/>
+			<label kind="synchronisation" x="-748" y="-280">update!</label>
+		</transition>
+		<transition>
+			<source ref="id32"/>
+			<target ref="id20"/>
+			<nail x="-34" y="-170"/>
+		</transition>
+		<transition>
+			<source ref="id31"/>
+			<target ref="id32"/>
+			<label kind="guard" x="-25" y="-272">t &gt;= delay</label>
+		</transition>
+		<transition>
+			<source ref="id30"/>
+			<target ref="id31"/>
+			<label kind="assignment" x="-25" y="-357">t = 0,
+delay = GetDelay_ABS()</label>
+		</transition>
+		<transition>
+			<source ref="id29"/>
+			<target ref="id30"/>
+			<label kind="guard" x="-25" y="-425">comReadFIFOByTile[1] == false</label>
+			<label kind="synchronisation" x="-102" y="-425">update?</label>
+		</transition>
+		<transition>
+			<source ref="id28"/>
+			<target ref="id36"/>
+			<label kind="assignment" x="-25" y="-561">currentFIFOUsedByTile[1] = Channel_GY_ABS,
+comReadFIFOByTile[1] = true</label>
+		</transition>
+		<transition>
+			<source ref="id27"/>
+			<target ref="id28"/>
+			<label kind="guard" x="-25" y="-629">comReadFIFOByTile[1] == false</label>
+			<label kind="synchronisation" x="-102" y="-629">update?</label>
+		</transition>
+		<transition>
+			<source ref="id26"/>
+			<target ref="id35"/>
+			<label kind="assignment" x="-25" y="-782">currentFIFOUsedByTile[1] = Channel_GX_ABS,
+comReadFIFOByTile[1] = true</label>
+			<nail x="-34" y="-782"/>
+		</transition>
+		<transition>
+			<source ref="id24"/>
+			<target ref="id26"/>
+			<label kind="guard" x="-654" y="-782">comWriteFIFOByTile[1] == false</label>
+			<label kind="synchronisation" x="-654" y="-799">update?</label>
+			<nail x="-680" y="-782"/>
+		</transition>
+		<transition>
+			<source ref="id25"/>
+			<target ref="id33"/>
+			<label kind="assignment" x="-671" y="-221">currentFIFOUsedByTile[1] = Channel_GetPixel_GX,
+comReadFIFOByTile[1] = true</label>
+		</transition>
+		<transition>
+			<source ref="id22"/>
+			<target ref="id18"/>
+			<label kind="assignment" x="-671" y="-425">t = 0,
+delay = GetDelay_GX()</label>
+		</transition>
+		<transition>
+			<source ref="id20"/>
+			<target ref="id25"/>
+			<label kind="synchronisation" x="-561" y="-161">finish!</label>
+		</transition>
+		<transition>
+			<source ref="id18"/>
+			<target ref="id23"/>
+			<label kind="guard" x="-671" y="-493">t &gt;= delay</label>
+		</transition>
+		<transition>
+			<source ref="id19"/>
+			<target ref="id25"/>
+			<label kind="synchronisation" x="-798" y="-187">startTiles?</label>
+			<label kind="assignment" x="-798" y="-170">t = 0</label>
+		</transition>
+		<transition>
+			<source ref="id23"/>
+			<target ref="id34"/>
+			<label kind="assignment" x="-671" y="-561">currentFIFOUsedByTile[1] = Channel_GX_ABS,
+comWriteFIFOByTile[1] = true</label>
+		</transition>
+		<transition>
+			<source ref="id21"/>
+			<target ref="id22"/>
+			<label kind="guard" x="-671" y="-340">comReadFIFOByTile[1] == false</label>
+			<label kind="synchronisation" x="-748" y="-340">update?</label>
+		</transition>
+	</template>
+	<template>
+		<name>BUS</name>
+		<declaration>clock t;
+RQFIFO_t request;</declaration>
+		<location id="id37" x="-952" y="-612">
+			<name x="-960" y="-646">Init</name>
+		</location>
+		<location id="id38" x="-544" y="-476">
+			<committed/>
+		</location>
+		<location id="id39" x="-850" y="-612">
+			<name x="-816" y="-620">GetRequest</name>
+		</location>
+		<location id="id40" x="-340" y="-510">
+			<label kind="invariant" x="-399" y="-493">t &lt;= writedelay_wcet</label>
+		</location>
+		<location id="id41" x="-340" y="-442">
+			<label kind="invariant" x="-399" y="-476">t &lt;= readdelay_wcet</label>
+		</location>
+		<location id="id42" x="-136" y="-476">
+			<committed/>
+		</location>
+		<location id="id43" x="-850" y="-476">
+			<committed/>
+		</location>
+		<location id="id44" x="-544" y="-680">
+			<committed/>
+		</location>
+		<init ref="id37"/>
+		<transition>
+			<source ref="id44"/>
+			<target ref="id39"/>
+			<label kind="synchronisation" x="-816" y="-697">update!</label>
+			<nail x="-850" y="-680"/>
+		</transition>
+		<transition>
+			<source ref="id43"/>
+			<target ref="id38"/>
+			<label kind="assignment" x="-782" y="-518">t = 0,
+request = PopRequest()</label>
+		</transition>
+		<transition>
+			<source ref="id39"/>
+			<target ref="id43"/>
+			<label kind="guard" x="-841" y="-569">CheckForRequest() == true</label>
+			<label kind="synchronisation" x="-909" y="-569">update?</label>
+		</transition>
+		<transition>
+			<source ref="id42"/>
+			<target ref="id44"/>
+			<label kind="assignment" x="-510" y="-680">pendingBusRequest[request.tilenr] = false</label>
+			<nail x="-136" y="-680"/>
+		</transition>
+		<transition>
+			<source ref="id41"/>
+			<target ref="id42"/>
+			<label kind="guard" x="-314" y="-442">t &gt;= readdelay_bcet</label>
+		</transition>
+		<transition>
+			<source ref="id40"/>
+			<target ref="id42"/>
+			<label kind="guard" x="-314" y="-527">t &gt;= writedelay_bcet</label>
+		</transition>
+		<transition>
+			<source ref="id38"/>
+			<target ref="id41"/>
+			<label kind="guard" x="-578" y="-450">request.write == false</label>
+		</transition>
+		<transition>
+			<source ref="id38"/>
+			<target ref="id40"/>
+			<label kind="guard" x="-578" y="-518">request.write == true</label>
+		</transition>
+		<transition>
+			<source ref="id37"/>
+			<target ref="id39"/>
+			<label kind="synchronisation" x="-934" y="-629">startBus?</label>
+			<label kind="assignment" x="-918" y="-612">t = 0</label>
+		</transition>
+	</template>
+	<template>
+		<name>ComDriver</name>
+		<parameter>const int tilenr</parameter>
+		<declaration>clock t;
+int counter;
+int requestid;
+
+bool IsFIFOFull()
+{
+    if(sharedfifos[currentFIFOUsedByTile[tilenr]].numtokens == sharedfifos[currentFIFOUsedByTile[tilenr]].maxtokens)
+        return true;
+    else
+        return false;
+}
+
+void SetFIFOFull()
+{
+    sharedfifos[currentFIFOUsedByTile[tilenr]].numtokens = sharedfifos[currentFIFOUsedByTile[tilenr]].maxtokens;
+}
+void SetFIFOEmpty()
+{
+    sharedfifos[currentFIFOUsedByTile[tilenr]].numtokens = 0;
+}</declaration>
+		<location id="id45" x="-1020" y="-102">
+			<name x="-1030" y="-136">Init</name>
+		</location>
+		<location id="id46" x="-884" y="-102">
+			<name x="-875" y="-127">IDLE</name>
+		</location>
+		<location id="id47" x="-884" y="-238">
+			<name x="-943" y="-272">WRRequestMeta</name>
+			<committed/>
+		</location>
+		<location id="id48" x="-884" y="204">
+			<name x="-943" y="221">RDRequestMeta</name>
+			<committed/>
+		</location>
+		<location id="id49" x="-952" y="-374">
+			<name x="-1003" y="-425">WRPollingDelay</name>
+			<label kind="invariant" x="-1088" y="-374">t &lt;= pollingdelay</label>
+		</location>
+		<location id="id50" x="-612" y="-374">
+			<name x="-663" y="-416">EnqueueDelay</name>
+			<label kind="invariant" x="-595" y="-391">t &lt;= enqueuedelay_wcet</label>
+		</location>
+		<location id="id51" x="-136" y="-374">
+			<name x="-170" y="-340">WriteToken</name>
+		</location>
+		<location id="id52" x="136" y="-374">
+			<name x="162" y="-382">WriteCompletionCheck</name>
+			<committed/>
+		</location>
+		<location id="id53" x="136" y="-238">
+			<name x="162" y="-246">WRUpdateMeta_Usage</name>
+		</location>
+		<location id="id54" x="-952" y="340">
+			<name x="-1003" y="374">RDPollingWait</name>
+			<label kind="invariant" x="-1088" y="306">t &lt;= pollingdelay</label>
+		</location>
+		<location id="id55" x="-612" y="340">
+			<name x="-663" y="297">DequeueDelay</name>
+			<label kind="invariant" x="-595" y="323">t &lt;= dequeuedelay_wcet</label>
+		</location>
+		<location id="id56" x="-136" y="340">
+			<name x="-170" y="289">ReadToken</name>
+		</location>
+		<location id="id57" x="136" y="340">
+			<name x="162" y="331">ReadCompletionCheck</name>
+			<committed/>
+		</location>
+		<location id="id58" x="136" y="204">
+			<name x="162" y="196">RDUpdateMeta_Usage</name>
+		</location>
+		<location id="id59" x="-816" y="-374">
+			<name x="-858" y="-425">WRCheckMeta</name>
+			<label kind="comments" x="-935" y="-493">FIFO-State check ist irreführend!
+Es wird geprüft ob voll oder leer - FIXEN!</label>
+			<committed/>
+		</location>
+		<location id="id60" x="136" y="-136">
+			<name x="161" y="-144">WriteDone</name>
+			<committed/>
+		</location>
+		<location id="id61" x="-816" y="-306">
+			<name x="-790" y="-314">WRWaitForMeta</name>
+		</location>
+		<location id="id62" x="-816" y="272">
+			<name x="-799" y="263">RDWaitForMeta</name>
+		</location>
+		<location id="id63" x="-816" y="340">
+			<name x="-867" y="374">RDCheckMeta</name>
+			<committed/>
+		</location>
+		<location id="id64" x="136" y="-68">
+			<name x="162" y="-76">ReadDone</name>
+			<committed/>
+		</location>
+		<location id="id65" x="-340" y="-374">
+			<committed/>
+		</location>
+		<location id="id66" x="-340" y="340">
+			<committed/>
+		</location>
+		<location id="id67" x="136" y="0">
+			<name x="162" y="-8">RDUpdateMeta_Index</name>
+		</location>
+		<location id="id68" x="136" y="136">
+			<committed/>
+		</location>
+		<location id="id69" x="-408" y="340">
+			<committed/>
+		</location>
+		<location id="id70" x="-374" y="238">
+			<name x="-416" y="195">RDReadIndex</name>
+		</location>
+		<location id="id71" x="-408" y="-374">
+			<committed/>
+		</location>
+		<location id="id72" x="-374" y="-272">
+			<name x="-416" y="-246">WRReadIndex</name>
+		</location>
+		<location id="id73" x="-816" y="204">
+			<committed/>
+		</location>
+		<location id="id74" x="-816" y="-238">
+			<committed/>
+		</location>
+		<location id="id75" x="-408" y="-306">
+			<committed/>
+		</location>
+		<location id="id76" x="-204" y="-374">
+			<committed/>
+		</location>
+		<location id="id77" x="0" y="-476">
+			<committed/>
+		</location>
+		<location id="id78" x="136" y="-306">
+			<committed/>
+		</location>
+		<location id="id79" x="-782" y="-102">
+			<name x="-765" y="-110">ComFinished</name>
+			<committed/>
+		</location>
+		<location id="id80" x="-408" y="272">
+			<committed/>
+		</location>
+		<location id="id81" x="-204" y="340">
+			<committed/>
+		</location>
+		<location id="id82" x="0" y="442">
+			<committed/>
+		</location>
+		<location id="id83" x="136" y="272">
+			<committed/>
+		</location>
+		<location id="id84" x="136" y="68">
+			<committed/>
+		</location>
+		<init ref="id45"/>
+		<transition>
+			<source ref="id84"/>
+			<target ref="id67"/>
+			<label kind="synchronisation" x="68" y="25">update!</label>
+		</transition>
+		<transition>
+			<source ref="id83"/>
+			<target ref="id58"/>
+			<label kind="synchronisation" x="68" y="229">update!</label>
+		</transition>
+		<transition>
+			<source ref="id82"/>
+			<target ref="id56"/>
+			<label kind="synchronisation" x="-119" y="442">update!</label>
+			<nail x="-136" y="442"/>
+		</transition>
+		<transition>
+			<source ref="id81"/>
+			<target ref="id56"/>
+			<label kind="synchronisation" x="-204" y="357">update!</label>
+		</transition>
+		<transition>
+			<source ref="id80"/>
+			<target ref="id70"/>
+			<label kind="synchronisation" x="-467" y="229">update!</label>
+			<nail x="-408" y="238"/>
+		</transition>
+		<transition>
+			<source ref="id79"/>
+			<target ref="id46"/>
+			<label kind="synchronisation" x="-850" y="-102">update!</label>
+		</transition>
+		<transition>
+			<source ref="id78"/>
+			<target ref="id53"/>
+			<label kind="synchronisation" x="68" y="-280">update!</label>
+		</transition>
+		<transition>
+			<source ref="id77"/>
+			<target ref="id51"/>
+			<label kind="synchronisation" x="-118" y="-493">update!</label>
+			<nail x="-136" y="-476"/>
+		</transition>
+		<transition>
+			<source ref="id76"/>
+			<target ref="id51"/>
+			<label kind="synchronisation" x="-204" y="-408">update!</label>
+		</transition>
+		<transition>
+			<source ref="id75"/>
+			<target ref="id72"/>
+			<label kind="synchronisation" x="-476" y="-280">update!</label>
+			<nail x="-408" y="-272"/>
+		</transition>
+		<transition>
+			<source ref="id74"/>
+			<target ref="id61"/>
+			<label kind="synchronisation" x="-807" y="-280">update!</label>
+		</transition>
+		<transition>
+			<source ref="id73"/>
+			<target ref="id62"/>
+			<label kind="synchronisation" x="-807" y="229">update!</label>
+		</transition>
+		<transition>
+			<source ref="id72"/>
+			<target ref="id65"/>
+			<label kind="guard" x="-340" y="-263">pendingBusRequest[tilenr] == false</label>
+			<label kind="synchronisation" x="-331" y="-306">update?</label>
+			<nail x="-340" y="-272"/>
+		</transition>
+		<transition>
+			<source ref="id71"/>
+			<target ref="id75"/>
+			<label kind="assignment" x="-620" y="-314">PushRequest(tilenr, READ)</label>
+		</transition>
+		<transition>
+			<source ref="id70"/>
+			<target ref="id66"/>
+			<label kind="guard" x="-331" y="229">pendingBusRequest[tilenr] == false</label>
+			<label kind="synchronisation" x="-331" y="255">update?</label>
+			<nail x="-340" y="238"/>
+		</transition>
+		<transition>
+			<source ref="id69"/>
+			<target ref="id80"/>
+			<label kind="assignment" x="-595" y="289">PushRequest(tilenr, READ)</label>
+		</transition>
+		<transition>
+			<source ref="id68"/>
+			<target ref="id84"/>
+			<label kind="assignment" x="144" y="93">PushRequest(tilenr, WRITE)</label>
+		</transition>
+		<transition>
+			<source ref="id67"/>
+			<target ref="id64"/>
+			<label kind="guard" x="144" y="-42">pendingBusRequest[tilenr] == false</label>
+			<label kind="synchronisation" x="68" y="-42">update?</label>
+		</transition>
+		<transition>
+			<source ref="id66"/>
+			<target ref="id81"/>
+			<label kind="assignment" x="-323" y="306">PushRequest(tilenr, READ),
+counter = 0</label>
+		</transition>
+		<transition>
+			<source ref="id50"/>
+			<target ref="id71"/>
+			<label kind="guard" x="-595" y="-374">t &gt;= enqueuedelay_bcet</label>
+		</transition>
+		<transition>
+			<source ref="id58"/>
+			<target ref="id68"/>
+			<label kind="guard" x="144" y="161">pendingBusRequest[tilenr] == false</label>
+			<label kind="synchronisation" x="68" y="161">update?</label>
+		</transition>
+		<transition>
+			<source ref="id57"/>
+			<target ref="id82"/>
+			<label kind="guard" x="144" y="357">counter &lt; sharedfifos[currentFIFOUsedByTile[tilenr]].maxtokens</label>
+			<label kind="assignment" x="34" y="442">PushRequest(tilenr, READ)</label>
+			<nail x="136" y="442"/>
+		</transition>
+		<transition>
+			<source ref="id63"/>
+			<target ref="id55"/>
+			<label kind="guard" x="-799" y="323">IsFIFOFull() == true</label>
+			<label kind="assignment" x="-722" y="340">t = 0</label>
+		</transition>
+		<transition>
+			<source ref="id54"/>
+			<target ref="id48"/>
+			<label kind="guard" x="-1088" y="323">t &gt;= pollingdelay</label>
+			<nail x="-952" y="204"/>
+		</transition>
+		<transition>
+			<source ref="id63"/>
+			<target ref="id54"/>
+			<label kind="guard" x="-960" y="357">IsFIFOFull() == false</label>
+			<label kind="assignment" x="-892" y="340">t = 0</label>
+		</transition>
+		<transition>
+			<source ref="id62"/>
+			<target ref="id63"/>
+			<label kind="guard" x="-807" y="280">pendingBusRequest[tilenr] == false</label>
+			<label kind="synchronisation" x="-884" y="280">update?</label>
+		</transition>
+		<transition>
+			<source ref="id48"/>
+			<target ref="id73"/>
+			<label kind="assignment" x="-850" y="170">PushRequest(tilenr, READ)</label>
+		</transition>
+		<transition>
+			<source ref="id47"/>
+			<target ref="id74"/>
+			<label kind="assignment" x="-850" y="-221">PushRequest(tilenr, READ)</label>
+		</transition>
+		<transition>
+			<source ref="id53"/>
+			<target ref="id60"/>
+			<label kind="guard" x="144" y="-221">pendingBusRequest[tilenr] == false</label>
+			<label kind="synchronisation" x="68" y="-212">update?</label>
+		</transition>
+		<transition>
+			<source ref="id59"/>
+			<target ref="id50"/>
+			<label kind="guard" x="-799" y="-391">IsFIFOFull() == false</label>
+			<label kind="assignment" x="-722" y="-374">t = 0</label>
+		</transition>
+		<transition>
+			<source ref="id49"/>
+			<target ref="id47"/>
+			<label kind="guard" x="-1088" y="-357">t &gt;= pollingdelay</label>
+			<nail x="-952" y="-238"/>
+		</transition>
+		<transition>
+			<source ref="id59"/>
+			<target ref="id49"/>
+			<label kind="guard" x="-977" y="-408">IsFIFOFull() == true</label>
+			<label kind="assignment" x="-892" y="-374">t = 0</label>
+		</transition>
+		<transition>
+			<source ref="id61"/>
+			<target ref="id59"/>
+			<label kind="guard" x="-807" y="-348">pendingBusRequest[tilenr] == false</label>
+			<label kind="synchronisation" x="-884" y="-348">update?</label>
+		</transition>
+		<transition>
+			<source ref="id64"/>
+			<target ref="id79"/>
+			<label kind="assignment" x="-714" y="-85">comReadFIFOByTile[tilenr] = false</label>
+			<nail x="-748" y="-68"/>
+		</transition>
+		<transition>
+			<source ref="id57"/>
+			<target ref="id83"/>
+			<label kind="guard" x="144" y="314">counter == sharedfifos[currentFIFOUsedByTile[tilenr]].maxtokens</label>
+			<label kind="assignment" x="144" y="280">PushRequest(tilenr, WRITE),
+SetFIFOEmpty()</label>
+		</transition>
+		<transition>
+			<source ref="id56"/>
+			<target ref="id57"/>
+			<label kind="guard" x="-119" y="314">pendingBusRequest[tilenr] == false</label>
+			<label kind="synchronisation" x="-59" y="297">update?</label>
+			<label kind="assignment" x="-102" y="340">counter = counter + 1</label>
+		</transition>
+		<transition>
+			<source ref="id55"/>
+			<target ref="id69"/>
+			<label kind="guard" x="-595" y="340">t &gt;= dequeuedelay_bcet</label>
+		</transition>
+		<transition>
+			<source ref="id60"/>
+			<target ref="id79"/>
+			<label kind="assignment" x="-714" y="-136">comWriteFIFOByTile[tilenr] = false</label>
+			<nail x="-748" y="-136"/>
+		</transition>
+		<transition>
+			<source ref="id52"/>
+			<target ref="id78"/>
+			<label kind="guard" x="144" y="-365">counter == sharedfifos[currentFIFOUsedByTile[tilenr]].maxtokens</label>
+			<label kind="assignment" x="144" y="-348">SetFIFOFull(),
+PushRequest(tilenr, WRITE)</label>
+		</transition>
+		<transition>
+			<source ref="id52"/>
+			<target ref="id77"/>
+			<label kind="guard" x="144" y="-408">counter &lt; sharedfifos[currentFIFOUsedByTile[tilenr]].maxtokens</label>
+			<label kind="assignment" x="34" y="-493">PushRequest(tilenr, WRITE)</label>
+			<nail x="136" y="-476"/>
+		</transition>
+		<transition>
+			<source ref="id51"/>
+			<target ref="id52"/>
+			<label kind="guard" x="-127" y="-399">pendingBusRequest[tilenr] == false</label>
+			<label kind="synchronisation" x="-68" y="-416">update?</label>
+			<label kind="assignment" x="-102" y="-374">counter = counter + 1</label>
+		</transition>
+		<transition>
+			<source ref="id65"/>
+			<target ref="id76"/>
+			<label kind="assignment" x="-322" y="-374">counter = 0,
+PushRequest(tilenr, WRITE)</label>
+		</transition>
+		<transition>
+			<source ref="id46"/>
+			<target ref="id47"/>
+			<label kind="guard" x="-875" y="-195">comWriteFIFOByTile[tilenr] == true</label>
+			<label kind="synchronisation" x="-952" y="-195">update?</label>
+		</transition>
+		<transition>
+			<source ref="id46"/>
+			<target ref="id48"/>
+			<label kind="guard" x="-875" y="60">comReadFIFOByTile[tilenr] == true</label>
+			<label kind="synchronisation" x="-952" y="60">update?</label>
+		</transition>
+		<transition>
+			<source ref="id45"/>
+			<target ref="id46"/>
+			<label kind="synchronisation" x="-1002" y="-119">startComDriver?</label>
+			<label kind="assignment" x="-1002" y="-102">t = 0</label>
+		</transition>
+	</template>
+	<template>
+		<name>TemplatesTrigger</name>
+		<declaration>clock t;</declaration>
+		<location id="id85" x="-510" y="-136">
+			<name x="-520" y="-170">Start</name>
+			<committed/>
+		</location>
+		<location id="id86" x="-272" y="-136">
+			<name x="-282" y="-170">ComActive</name>
+			<committed/>
+		</location>
+		<location id="id87" x="-110" y="-136">
+			<name x="-120" y="-170">TilesActive</name>
+			<committed/>
+		</location>
+		<location id="id88" x="102" y="-136">
+			<name x="92" y="-170">Running</name>
+		</location>
+		<init ref="id85"/>
+		<transition>
+			<source ref="id87"/>
+			<target ref="id88"/>
+			<label kind="synchronisation" x="-92" y="-153">startBus!</label>
+		</transition>
+		<transition>
+			<source ref="id86"/>
+			<target ref="id87"/>
+			<label kind="synchronisation" x="-254" y="-153">startTiles!</label>
+		</transition>
+		<transition>
+			<source ref="id85"/>
+			<target ref="id86"/>
+			<label kind="synchronisation" x="-493" y="-153">startComDriver!</label>
+		</transition>
+	</template>
+	<template>
+		<name>Observer</name>
+		<declaration>clock end2end;
+clock laste2e = 1000000.0;</declaration>
+		<location id="id89" x="-408" y="-102">
+			<name x="-418" y="-136">Init</name>
+		</location>
+		<location id="id90" x="-102" y="-102">
+			<name x="-102" y="-136">Finish</name>
+			<committed/>
+		</location>
+		<location id="id91" x="-238" y="-102">
+			<name x="-314" y="-136">WaitForFinish</name>
+		</location>
+		<location id="id92" x="-170" y="-34">
+			<name x="-221" y="0">WaitForNextIteration</name>
+		</location>
+		<location id="id93" x="-238" y="-34">
+			<name x="-425" y="-42">WaitForSkippedIteration</name>
+			<label kind="comments" x="-527" y="-17">Due to pipelining effect of the mapping,
+every second iteration gets observed</label>
+		</location>
+		<init ref="id89"/>
+		<transition>
+			<source ref="id93"/>
+			<target ref="id91"/>
+			<label kind="synchronisation" x="-289" y="-76">finish?</label>
+		</transition>
+		<transition>
+			<source ref="id92"/>
+			<target ref="id93"/>
+			<label kind="synchronisation" x="-221" y="-59">start?</label>
+			<label kind="assignment" x="-246" y="-25">end2end = 0</label>
+		</transition>
+		<transition>
+			<source ref="id89"/>
+			<target ref="id91"/>
+			<label kind="synchronisation" x="-374" y="-119">start?</label>
+			<label kind="assignment" x="-374" y="-102">end2end = 0</label>
+		</transition>
+		<transition>
+			<source ref="id90"/>
+			<target ref="id92"/>
+			<label kind="assignment" x="-85" y="-76">end2end = 0</label>
+			<nail x="-102" y="-34"/>
+		</transition>
+		<transition>
+			<source ref="id91"/>
+			<target ref="id90"/>
+			<label kind="synchronisation" x="-187" y="-187">finish?</label>
+			<label kind="assignment" x="-119" y="-187">laste2e = end2end</label>
+			<nail x="-170" y="-170"/>
+		</transition>
+	</template>
+	<system>tile0 = Tile0();
+tile1 = Tile1();
+bus   = BUS();
+obs   = Observer();
+com0  = ComDriver(0);
+com1  = ComDriver(1);
+trigger= TemplatesTrigger();
+
+system tile0, tile1, com0, com1, bus, obs, trigger;</system>
+	<queries>
+		<query>
+			<formula>E [&lt;= 50000; 1000] (min: obs.laste2e)</formula>
+			<comment>Best-Case Execution Time</comment>
+		</query>
+		<query>
+			<formula>E [&lt;= 50000; 1000] (max: obs.end2end)</formula>
+			<comment>Worst-Case Execution Time</comment>
+		</query>
+		<query>
+			<formula>Pr [&lt;= 50000](&lt;&gt; obs.Finish &amp;&amp; obs.end2end &lt;= 40000)</formula>
+			<comment>How likly to miss a deadline of 40000 cycles</comment>
+		</query>
+		<query>
+			<formula>Pr [&lt;= 50000](&lt;&gt; obs.Finish)</formula>
+			<comment>End-to-End latency</comment>
+		</query>
+		<query>
+			<formula>simulate 1000 [&lt;= 50000] {obs.end2end}</formula>
+			<comment>Simple simulation</comment>
+		</query>
+	</queries>
+</nta>
